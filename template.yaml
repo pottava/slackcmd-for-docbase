@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: >
+    This function will invoke DocBase APIs for Slack commands.
+
+Parameters:
+    DocBaseDomain:
+      Type: String
+    DocBaseToken:
+      Type: String
+    SlackToken:
+      Type: String
+
+Outputs:
+    URL:
+      Description: The endpoint base URL for Slack commands
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+Resources:
+    IAMRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: AllowLambdaServiceToAssumeRole
+              Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        Path: /
+
+    Lambda:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: docbase.search
+        Runtime: python2.7
+        Role: !GetAtt IAMRole.Arn
+        MemorySize: 128
+        Timeout: 15
+        Environment:
+          Variables:
+            DOCBASE_DOMAIN: !Ref DocBaseDomain
+            DOCBASE_TOKEN: !Ref DocBaseToken
+            SLACK_TOKEN: !Ref SlackToken
+        Events:
+          search:
+            Type: Api
+            Properties:
+              Path: /search
+              Method: get
